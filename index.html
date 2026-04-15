@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Halve Marathon Trainer</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --groen: #1D9E75;
+    --groen-licht: #E1F5EE;
+    --oranje: #D85A30;
+    --blauw: #185FA5;
+    --tekst: #1a1a1a;
+    --tekst-zacht: #666;
+    --rand: #e8e8e8;
+    --achtergrond: #f7f7f5;
+    --wit: #ffffff;
+    --radius: 12px;
+    --radius-sm: 8px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'DM Sans', sans-serif; background: var(--achtergrond); color: var(--tekst); min-height: 100vh; }
+
+  /* HEADER */
+  .header { background: var(--wit); border-bottom: 1px solid var(--rand); padding: 0 24px; display: flex; align-items: center; justify-content: space-between; height: 60px; position: sticky; top: 0; z-index: 100; }
+  .logo { font-family: 'DM Mono', monospace; font-size: 15px; font-weight: 500; letter-spacing: -0.3px; }
+  .logo span { color: var(--groen); }
+  .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #ccc; display: inline-block; margin-right: 6px; transition: background 0.3s; }
+  .status-dot.verbonden { background: var(--groen); }
+  .status-tekst { font-size: 12px; color: var(--tekst-zacht); }
+
+  /* SETUP SCHERM */
+  .setup { max-width: 480px; margin: 60px auto; padding: 0 20px; }
+  .setup-card { background: var(--wit); border-radius: var(--radius); border: 1px solid var(--rand); padding: 32px; }
+  .setup-card h2 { font-size: 20px; font-weight: 500; margin-bottom: 8px; }
+  .setup-card p { font-size: 14px; color: var(--tekst-zacht); line-height: 1.6; margin-bottom: 24px; }
+  .setup-card label { font-size: 12px; color: var(--tekst-zacht); display: block; margin-bottom: 5px; }
+  .setup-card input { width: 100%; padding: 10px 12px; border: 1px solid var(--rand); border-radius: var(--radius-sm); font-size: 14px; font-family: 'DM Sans', sans-serif; margin-bottom: 12px; outline: none; background: var(--achtergrond); }
+  .setup-card input:focus { border-color: var(--groen); background: var(--wit); }
+  .setup-card .hint { font-size: 12px; color: var(--tekst-zacht); margin-bottom: 20px; line-height: 1.5; }
+  .btn { padding: 10px 20px; font-size: 14px; font-family: 'DM Sans', sans-serif; border: 1px solid var(--rand); border-radius: var(--radius-sm); cursor: pointer; background: var(--wit); color: var(--tekst); transition: all 0.15s; width: 100%; }
+  .btn:hover { background: var(--achtergrond); }
+  .btn-primary { background: var(--groen); color: white; border-color: var(--groen); }
+  .btn-primary:hover { opacity: 0.9; background: var(--groen); }
+
+  /* HOOFD LAYOUT */
+  .app { display: none; max-width: 800px; margin: 0 auto; padding: 24px 20px; }
+  .app.zichtbaar { display: block; }
+
+  /* NAV */
+  .nav { display: flex; gap: 6px; margin-bottom: 24px; flex-wrap: wrap; }
+  .nav button { padding: 8px 16px; font-size: 13px; font-family: 'DM Sans', sans-serif; border: 1px solid var(--rand); border-radius: 20px; cursor: pointer; background: var(--wit); color: var(--tekst-zacht); transition: all 0.15s; }
+  .nav button.actief { background: var(--tekst); color: white; border-color: var(--tekst); }
+  .nav button:hover:not(.actief) { border-color: #ccc; color: var(--tekst); }
+
+  /* SCHERMEN */
+  .scherm { display: none; }
+  .scherm.actief { display: block; }
+
+  /* STATS */
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 24px; }
+  .stat { background: var(--wit); border: 1px solid var(--rand); border-radius: var(--radius); padding: 14px 16px; }
+  .stat-label { font-size: 11px; color: var(--tekst-zacht); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+  .stat-val { font-size: 24px; font-weight: 500; font-family: 'DM Mono', monospace; }
+  .stat-unit { font-size: 12px; color: var(--tekst-zacht); font-family: 'DM Sans', sans-serif; font-weight: 400; }
+
+  /* WEEK SCHEMA */
+  .week-lijst { display: grid; gap: 8px; }
+  .week-kaart { background: var(--wit); border: 1px solid var(--rand); border-radius: var(--radius); overflow: hidden; }
+  .week-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; cursor: pointer; user-select: none; transition: background 0.1s; }
+  .week-header:hover { background: var(--achtergrond); }
+  .week-titel { font-size: 14px; font-weight: 500; }
+  .week-sub { font-size: 12px; color: var(--tekst-zacht); margin-top: 2px; }
+  .badge { font-size: 11px; padding: 3px 9px; border-radius: 20px; font-weight: 500; }
+  .badge-basis { background: #E1F5EE; color: #085041; }
+  .badge-opbouw { background: #E6F1FB; color: #0C447C; }
+  .badge-intensief { background: #FAEEDA; color: #633806; }
+  .badge-piek { background: #FAECE7; color: #712B13; }
+  .badge-afbouw { background: #EAF3DE; color: #27500A; }
+  .badge-rust { background: #f0f0ee; color: #444; }
+  .week-body { display: none; border-top: 1px solid var(--rand); }
+  .week-body.open { display: block; }
+  .dag-rij { display: grid; grid-template-columns: 60px 1fr auto; align-items: center; gap: 8px; padding: 8px 16px; border-bottom: 1px solid #f5f5f5; }
+  .dag-rij:last-child { border: none; }
+  .dag-naam { font-size: 12px; color: var(--tekst-zacht); font-family: 'DM Mono', monospace; }
+  .dag-omschrijving { font-size: 13px; }
+  .dag-rechts { display: flex; align-items: center; gap: 8px; }
+  .dag-km { font-size: 12px; color: var(--tekst-zacht); font-family: 'DM Mono', monospace; }
+  .vink-btn { width: 24px; height: 24px; border-radius: 50%; border: 1.5px solid var(--rand); cursor: pointer; background: transparent; font-size: 12px; display: flex; align-items: center; justify-content: center; transition: all 0.15s; flex-shrink: 0; }
+  .vink-btn.gedaan { background: var(--groen); border-color: var(--groen); color: white; }
+  .chevron { font-size: 11px; color: var(--tekst-zacht); transition: transform 0.2s; display: inline-block; }
+  .chevron.open { transform: rotate(90deg); }
+
+  /* LOGBOEK */
+  .formulier { background: var(--wit); border: 1px solid var(--rand); border-radius: var(--radius); padding: 20px; margin-bottom: 16px; }
+  .formulier h3 { font-size: 15px; font-weight: 500; margin-bottom: 16px; }
+  .form-rij { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+  .form-rij-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+  .form-groep { display: flex; flex-direction: column; gap: 4px; }
+  .form-groep label { font-size: 11px; color: var(--tekst-zacht); text-transform: uppercase; letter-spacing: 0.4px; }
+  .form-groep input, .form-groep select, .form-groep textarea { padding: 9px 12px; border: 1px solid var(--rand); border-radius: var(--radius-sm); font-size: 13px; font-family: 'DM Sans', sans-serif; outline: none; background: var(--achtergrond); transition: border 0.15s; }
+  .form-groep input:focus, .form-groep select:focus, .form-groep textarea:focus { border-color: var(--groen); background: var(--wit); }
+  .form-groep textarea { height: 60px; resize: none; }
+  .scheidslijn { border: none; border-top: 1px solid var(--rand); margin: 14px 0; }
+  .hr-sectie-titel { font-size: 11px; font-weight: 500; color: var(--tekst-zacht); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; }
+  .zone-hint { font-size: 12px; color: var(--tekst-zacht); margin: 6px 0 10px; min-height: 18px; }
+  .zone-tag { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 20px; margin-left: 4px; font-weight: 500; }
+  .z1 { background: #E1F5EE; color: #085041; }
+  .z2 { background: #E6F1FB; color: #0C447C; }
+  .z3 { background: #EAF3DE; color: #27500A; }
+  .z4 { background: #FAEEDA; color: #633806; }
+  .z5 { background: #FAECE7; color: #712B13; }
+
+  /* LOG ITEMS */
+  .log-lijst { display: grid; gap: 8px; }
+  .log-item { background: var(--wit); border: 1px solid var(--rand); border-radius: var(--radius); padding: 14px 16px; }
+  .log-top { display: grid; grid-template-columns: 1fr auto; gap: 8px; margin-bottom: 8px; }
+  .log-datum { font-size: 11px; color: var(--tekst-zacht); font-family: 'DM Mono', monospace; margin-bottom: 3px; }
+  .log-type { font-size: 14px; font-weight: 500; }
+  .log-notitie { font-size: 12px; color: var(--tekst-zacht); margin-top: 4px; }
+  .log-km { font-size: 22px; font-weight: 500; font-family: 'DM Mono', monospace; text-align: right; }
+  .log-km-unit { font-size: 11px; color: var(--tekst-zacht); font-family: 'DM Sans', sans-serif; font-weight: 400; }
+  .log-pills { display: flex; gap: 6px; flex-wrap: wrap; }
+  .pill { font-size: 12px; padding: 3px 10px; border-radius: 20px; border: 1px solid var(--rand); color: var(--tekst-zacht); background: var(--achtergrond); }
+  .pill-hr { font-weight: 500; }
+  .leeg { font-size: 14px; color: var(--tekst-zacht); text-align: center; padding: 32px 0; }
+
+  /* VOORTGANG */
+  .voortgang-kaart { background: var(--wit); border: 1px solid var(--rand); border-radius: var(--radius); padding: 20px; margin-bottom: 16px; }
+  .voortgang-kaart h3 { font-size: 15px; font-weight: 500; margin-bottom: 14px; }
+  .prog-label { display: flex; justify-content: space-between; font-size: 12px; color: var(--tekst-zacht); margin-bottom: 5px; margin-top: 10px; }
+  .prog-balk { background: #f0f0ee; border-radius: 4px; height: 6px; overflow: hidden; }
+  .prog-vulling { height: 6px; background: var(--groen); border-radius: 4px; transition: width 0.4s; }
+
+  /* ZONES */
+  .zones-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; margin-bottom: 20px; }
+  .zone-kaart { border-radius: var(--radius-sm); padding: 12px 14px; border: 1px solid transparent; }
+  .zone-naam { font-size: 13px; font-weight: 500; margin-bottom: 2px; }
+  .zone-bpm { font-size: 12px; opacity: 0.75; font-family: 'DM Mono', monospace; }
+  .zone-desc { font-size: 11px; opacity: 0.65; margin-top: 3px; }
+  .instellingen-rij { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; margin-bottom: 20px; }
+
+  /* LAADBERICHT */
+  .laden { text-align: center; padding: 40px; color: var(--tekst-zacht); font-size: 14px; }
+  .fout-bericht { background: #FAECE7; color: #712B13; border-radius: var(--radius-sm); padding: 10px 14px; font-size: 13px; margin-bottom: 12px; display: none; }
+
+  @media (max-width: 520px) {
+    .form-rij, .form-rij-3 { grid-template-columns: 1fr; }
+    .stats { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">halve<span>marathon</span>.app</div>
+  <div>
+    <span class="status-dot" id="statusDot"></span>
+    <span class="status-tekst" id="statusTekst">Verbinden...</span>
+  </div>
+</div>
+
+<!-- SETUP SCHERM -->
+<div class="setup" id="setupScherm">
+  <div class="setup-card">
+    <h2>Welkom bij je trainer</h2>
+    <p>Vul je Supabase-gegevens in om te beginnen. Je vindt deze in je Supabase-project onder <strong>Settings → API</strong>.</p>
+    <div class="fout-bericht" id="foutBericht"></div>
+    <label>Supabase Project URL</label>
+    <input type="text" id="sbUrl" placeholder="https://xxxx.supabase.co">
+    <label>Supabase Anon Key</label>
+    <input type="text" id="sbKey" placeholder="eyJhbGci...">
+    <label>Jouw naam (voor synchronisatie)</label>
+    <input type="text" id="gebruikersnaam" placeholder="bijv. jan">
+    <p class="hint">Je naam wordt gebruikt als gebruikers-ID zodat jouw gegevens apart opgeslagen worden. Gebruik dezelfde naam op al je apparaten.</p>
+    <button class="btn btn-primary" onclick="verbinden()">Verbinden en starten</button>
+  </div>
+</div>
+
+<!-- HOOFD APP -->
+<div class="app" id="hoofdApp">
+  <div class="nav">
+    <button class="actief" onclick="toonScherm('schema', this)">Schema</button>
+    <button onclick="toonScherm('logboek', this)">Logboek</button>
+    <button onclick="toonScherm('voortgang', this)">Voortgang</button>
+    <button onclick="toonScherm('zones', this)">Hartslagzones</button>
+  </div>
+
+  <!-- SCHEMA -->
+  <div id="schema" class="scherm actief">
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px">
+      <span class="badge badge-basis">Basis</span>
+      <span class="badge badge-opbouw">Opbouw</span>
+      <span class="badge badge-intensief">Intensief</span>
+      <span class="badge badge-piek">Piek</span>
+      <span class="badge badge-afbouw">Afbouw</span>
+      <span class="badge badge-rust">Rust</span>
+    </div>
+    <div class="week-lijst" id="weekLijst"><div class="laden">Schema laden...</div></div>
+  </div>
+
+  <!-- LOGBOEK -->
+  <div id="logboek" class="scherm">
+    <div class="formulier">
+      <h3>Training toevoegen</h3>
+      <div class="fout-bericht" id="logFout"></div>
+      <div class="form-rij">
+        <div class="form-groep"><label>Datum</label><input type="date" id="logDatum"></div>
+        <div class="form-groep"><label>Type training</label>
+          <select id="logType">
+            <option>Duurloop</option><option>Tempoloop</option><option>Intervaltraining</option>
+            <option>Lange duurloop</option><option>Herstelloop</option><option>Krachttraining</option><option>Rust</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-rij">
+        <div class="form-groep"><label>Afstand (km)</label><input type="number" id="logKm" min="0" step="0.1" placeholder="0.0"></div>
+        <div class="form-groep"><label>Tijd (min)</label><input type="number" id="logTijd" min="0" placeholder="45"></div>
+      </div>
+      <hr class="scheidslijn">
+      <div class="hr-sectie-titel">Hartslag</div>
+      <div class="form-rij-3">
+        <div class="form-groep"><label>Gemiddeld (bpm)</label><input type="number" id="logHrGem" min="40" max="220" placeholder="bijv. 145" oninput="updateZoneHint()"></div>
+        <div class="form-groep"><label>Maximum (bpm)</label><input type="number" id="logHrMax" min="40" max="220" placeholder="bijv. 168"></div>
+        <div class="form-groep"><label>Minimum (bpm)</label><input type="number" id="logHrMin" min="40" max="220" placeholder="bijv. 118"></div>
+      </div>
+      <div class="zone-hint" id="zoneHint"></div>
+      <div class="form-groep" style="margin-bottom:14px"><label>Notitie</label><textarea id="logNotitie" placeholder="Hoe voelde het?"></textarea></div>
+      <button class="btn btn-primary" onclick="trainingOpslaan()" id="opslaanBtn">Training opslaan</button>
+    </div>
+    <div class="log-lijst" id="logLijst"><div class="leeg">Nog geen trainingen gelogd.</div></div>
+  </div>
+
+  <!-- VOORTGANG -->
+  <div id="voortgang" class="scherm">
+    <div class="stats" id="statsGrid"></div>
+    <div class="voortgang-kaart">
+      <h3>Schema voortgang</h3>
+      <div class="prog-label"><span>Trainingen afgerond</span><span id="progTekst">0 / 0</span></div>
+      <div class="prog-balk"><div class="prog-vulling" id="progBalk" style="width:0%"></div></div>
+      <div class="prog-label"><span>Weken voltooid</span><span id="weekTekst">0 / 24</span></div>
+      <div class="prog-balk"><div class="prog-vulling" id="weekBalk" style="width:0%"></div></div>
+    </div>
+    <div class="voortgang-kaart">
+      <h3>Kilometers per training (laatste 12)</h3>
+      <canvas id="kmGrafiek" height="140"></canvas>
+    </div>
+    <div class="voortgang-kaart">
+      <h3>Gemiddelde hartslag per training</h3>
+      <canvas id="hrGrafiek" height="140"></canvas>
+    </div>
+  </div>
+
+  <!-- ZONES -->
+  <div id="zones" class="scherm">
+    <div class="formulier">
+      <h3>Jouw maximale hartslag</h3>
+      <p style="font-size:13px;color:var(--tekst-zacht);margin:4px 0 16px">Vul je leeftijd in voor een automatische schatting, of voer je max. hartslag handmatig in.</p>
+      <div class="instellingen-rij">
+        <div class="form-groep"><label>Leeftijd</label><input type="number" id="leeftijd" min="10" max="80" placeholder="bijv. 35" style="width:120px" oninput="schatMaxHr()"></div>
+        <div class="form-groep"><label>Max. hartslag (bpm)</label><input type="number" id="maxHr" min="140" max="220" placeholder="bijv. 185" style="width:140px" oninput="updateZones()"></div>
+        <button class="btn" onclick="slaInstellingenOp()" style="height:38px">Opslaan</button>
+      </div>
+    </div>
+    <div class="zones-grid" id="zonesGrid"></div>
+    <div class="voortgang-kaart">
+      <h3>Verdeling trainingen per zone</h3>
+      <canvas id="zoneGrafiek" height="160"></canvas>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+const PLAN=[
+  {w:1,fase:'Basis',km:20,dagen:[{d:'Ma',t:'Rust',km:0},{d:'Di',t:'Duurloop 5km',km:5},{d:'Wo',t:'Rust/wandelen',km:0},{d:'Do',t:'Duurloop 5km',km:5},{d:'Vr',t:'Rust',km:0},{d:'Za',t:'Lange duurloop 10km',km:10},{d:'Zo',t:'Rust',km:0}]},
+  {w:2,fase:'Basis',km:22,dagen:[{d:'Ma',t:'Rust',km:0},{d:'Di',t:'Duurloop 6km',km:6},{d:'Wo',t:'Rust',km:0},{d:'Do',t:'Tempoloop 5km',km:5},{d:'Vr',t:'Rust',km:0},{d:'Za',t:'Lange duurloop 11km',km:11},{d:'Zo',t:'Herstelloop 3km',km:3}]},
+  {w:3,fase:'Basis',km:24,dagen:[{d:'Ma',t:'Rust',km:0},{d:'Di',t:'Duurloop 6km',km:6},{d:'Wo',t:'Rust',km:0},{d:'Do',t:'Duurloop 6km',km:6},{d:'Vr',t:'Rust',km:0},{d:'Za',t:'Lange duurloop 12km',km:12},{d:'Zo',t:'Herstelloop 3km',km:3}]},
+  {w:4,fase:'Rust',km:16,dagen:[{d:'Ma',t:'Rust',km:0},{d:'Di',t:'Duurloop 5km',km:5},{d:'Wo',t:'Rust',km:0},{d:'Do',t:'Duurloop 4km',km:4},{d:'Vr',t:'Rust',km:0},{d:'Za',t:'Lange duurloop 7km',km:7},{d:'Zo',t:'Rust',km:0}]},
+  {w:5,fase:'Opbouw',km:26,dagen:[{d:'Ma',t:'Rust',km:0},{d:'Di',t:'Intervaltraining 6km',km:6},{d:'Wo',t:'Rust',km:0},{d:'Do',t:'Tempoloop 6km',km:6},{d:'Vr',t:'Rust',km:0},{d:'Za',t:'Lange duurloop 14km',km:14},{d:'Zo',t:'Herstelloop 3km',km:3}]},
+  {w:6,fase:'Opbouw',km:28,dagen:[{d:'Ma',t:'Rust',km:0},{d:'Di',t:'Intervaltraining 6km',km:6},{d:'Wo',t:'Herstelloop 4km',km:4},{d:'Do',t:'Tempoloop 7km',km:7},{d:'Vr',t:'Rust',km:0},{d:'Za',t:'Lange duurloop 14km',km:14},{d:'Zo',t:'Herstelloop 4km',km:4}]},
+  {w:7,fase:'Opbouw',km:30,dagen:[{d:'Ma',t:'Rust',km:0},{d:'Di',t:'Tempoloop 7km',km:7},{d:'Wo',t:'Herstelloop 4km',km:4},{d:'Do',t:'Intervaltraining 7km',km:7},{d:'Vr',t:'Rust',km:0},{d:'Za',t:'Lange duurloop 16km',km:16},{d:'Zo',t:'Herstelloop 4km',km:4}]},
+  {w:8,fase:'Rust',km:20,dagen:[{d:'Ma',t:'Rust',km:0},{d:'Di',t:'Duurloop 6km',km:6},{d:'Wo',t:'Rust',km:0},{d:'Do',t:'Duurloop 5km',km:5},{d:'Vr',t:'Rust',km:0},{d:'Za',t:'Lange duurloop 9km',km:9},{d:'Zo',t:'Rust',km:0}]},
+  {w:9,fase:'Intensief',km:34,dagen:[{d:'Ma',t:'Rust',km:0},{d:'Di',t:'Intervaltraining 8km',km:8},{d:'Wo',t:'Herstelloop 5km',km:5},{d:'Do',t:'Tempoloop 8km',km:8},{d:'Vr',t:'Rust',km:0},{d:'Za',t:'Lange duurloop 17km',km:17},{d:'Zo',t:'Herstelloop 4km',km:4}]},
+  {w:10,fase:'Intensief',km:36,dagen:[{d:'Ma',t:'Rust',km:0},{d:'Di',t:'Intervaltraining 8km',km:8},{d:'Wo',t:'Herstelloop 5km',km:5},{d:'Do',t:'Tempoloop 9km',km:9},{d:'Vr',t:'Rust',km:0},{d:'Za',t:'Lange duurloop 18km',km:18},{d:'Zo',t:'Herstelloop 5km',km:5}]},
+  {w:11,fase:'Intensief',km:38,dagen:[{d:'Ma',t:'Rust',km:0},{d:'Di',t:'Tempoloop 9km',km:9},{d:'Wo',t:'Herstelloop 5km',km:5},{d:'Do',t:'Intervaltraining 9km',km:9},{d:'Vr',t:'Rust',km:0},{d:'Za',t:'Lange duurloop 19km',km:19},{d:'Zo',t:'Herstelloop 5km',km:5}]},
+  {w:12,fase:'Rust',km:22,dagen:[{d:'Ma',t:'Rust',km:0},{d:'Di',t:'Duurloop 7km',km:7},{d:'Wo',t:'Rust',km:0},{d:'Do',t:'Duurloop 6km',km:6},{d:'Vr',t:'Rust',km:0},{d:'Za',t:'Lange duurloop 9km',km:9},{d:'Zo',t:'Rust',km:0}]},
+  {w:13,fase:'Piek',km:40,dagen:[{d:'Ma',t:'Rust',km:0},{d:'Di',t:'Intervaltraining 9km',km:9},{d:'Wo',t:'Herstelloop 5km',km:5},{d:'Do',t:'Tempoloop 10km',km:10},{d:'Vr',t:'Rust',km:0},{d:'Za',t:'Lange duurloop 20km',km:20},{d:'Zo',t:'Herstelloop 5km',km:5}]},
+  {w:14,fase:'Piek',km:42,dagen:[{d:'Ma',t:'Rust',km:0},{d:'Di',t:'Tempoloop 10km',km:10},{d:'Wo',t:'Herstelloop 6km',km:6},{d:'Do',t:'Intervaltraining 10km',km:10},{d:'Vr',t:'Rust',km:0},{d:'Za',t:'Lange duurloop 21km',km:21},{d:'Zo',t:'Herstelloop 5km',km:5}]},
+  {w:15,fase:'Piek',km:42,dagen:[{d:'Ma',t:'Rust',km:0},{d:'Di',t:'Intervaltraining 10km',km:10},{d:'Wo',t:'Herstelloop 6km',km:6},{d:'Do',t:'Tempoloop 10km',km:10},{d:'Vr',t:'Rust',km:0},{d:'Za',t:'Lange duurloop 21km',km:21},{d:'Zo',t:'Herstelloop 5km',km:5}]},
+  {w:16,fase:'Rust',km:24,dagen:[{d:'Ma',t:'Rust',km:0},{d:'Di',t:'Duurloop 8km',km:8},{d:'Wo',t:'Rust',km:0},{d:'Do',t:'Duurloop 6km',km:6},{d:'Vr',t:'Rust',km:0},{d:'Za',t:'Lange duurloop 10km',km:10},{d:'Zo',t:'Rust',km:0}]},
+  {w:17,fase:'Opbouw',km:36,dagen:[{d:'Ma',t:'Rust',km:0},{d:'Di',t:'Tempoloop 9km',km:9},{d:'Wo',t:'Herstelloop 5km',km:5},{d:'Do',t:'Intervaltraining 9km',km:9},{d:'Vr',t:'Rust',km:0},{d:'Za',t:'Lange duurloop 18km',km:18},{d:'Zo',t:'Herstelloop 5km',km:5}]},
+  {w:18,fase:'Opbouw',km:38,dagen:[{d:'Ma',t:'Rust',km:0},{d:'Di',t:'Intervaltraining 9km',km:9},{d:'Wo',t:'Herstelloop 5km',km:5},{d:'Do',t:'Tempoloop 10km',km:10},{d:'Vr',t:'Rust',km:0},{d:'Za',t:'Lange duurloop 19km',km:19},{d:'Zo',t:'Herstelloop 5km',km:5}]},
+  {w:19,fase:'Intensief',km:40,dagen:[{d:'Ma',t:'Rust',km:0},{d:'Di',t:'Tempoloop 10km',km:10},{d:'Wo',t:'Herstelloop 6km',km:6},{d:'Do',t:'Intervaltraining 10km',km:10},{d:'Vr',t:'Rust',km:0},{d:'Za',t:'Lange duurloop 20km',km:20},{d:'Zo',t:'Herstelloop 5km',km:5}]},
+  {w:20,fase:'Intensief',km:40,dagen:[{d:'Ma',t:'Rust',km:0},{d:'Di',t:'Intervaltraining 10km',km:10},{d:'Wo',t:'Herstelloop 6km',km:6},{d:'Do',t:'Tempoloop 10km',km:10},{d:'Vr',t:'Rust',km:0},{d:'Za',t:'Lange duurloop 20km',km:20},{d:'Zo',t:'Herstelloop 5km',km:5}]},
+  {w:21,fase:'Afbouw',km:30,dagen:[{d:'Ma',t:'Rust',km:0},{d:'Di',t:'Duurloop 8km',km:8},{d:'Wo',t:'Herstelloop 4km',km:4},{d:'Do',t:'Tempoloop 7km',km:7},{d:'Vr',t:'Rust',km:0},{d:'Za',t:'Lange duurloop 14km',km:14},{d:'Zo',t:'Herstelloop 4km',km:4}]},
+  {w:22,fase:'Afbouw',km:22,dagen:[{d:'Ma',t:'Rust',km:0},{d:'Di',t:'Duurloop 6km',km:6},{d:'Wo',t:'Rust',km:0},{d:'Do',t:'Tempoloop 5km',km:5},{d:'Vr',t:'Rust',km:0},{d:'Za',t:'Duurloop 10km',km:10},{d:'Zo',t:'Herstelloop 4km',km:4}]},
+  {w:23,fase:'Afbouw',km:14,dagen:[{d:'Ma',t:'Rust',km:0},{d:'Di',t:'Duurloop 5km',km:5},{d:'Wo',t:'Rust',km:0},{d:'Do',t:'Loopdril 3km',km:3},{d:'Vr',t:'Rust',km:0},{d:'Za',t:'Rustige duurloop 6km',km:6},{d:'Zo',t:'Rust',km:0}]},
+  {w:24,fase:'Afbouw',km:21,dagen:[{d:'Ma',t:'Rust',km:0},{d:'Di',t:'Korte duurloop 3km',km:3},{d:'Wo',t:'Rust',km:0},{d:'Do',t:'Lichte activering 2km',km:2},{d:'Vr',t:'Rust',km:0},{d:'Za',t:'Rust',km:0},{d:'Zo',t:'HALVE MARATHON 21.1km',km:21.1}]}
+];
+
+const ZONES=[
+  {n:'Zone 1',label:'Herstel',pct:[50,60],cls:'z1',desc:'Heel rustig, actief herstel'},
+  {n:'Zone 2',label:'Aëroob',pct:[60,70],cls:'z2',desc:'Duurloop basis, vetverbranding'},
+  {n:'Zone 3',label:'Tempo',pct:[70,80],cls:'z3',desc:'Halve marathon tempo'},
+  {n:'Zone 4',label:'Drempel',pct:[80,90],cls:'z4',desc:'Oncomfortabel, tempotraining'},
+  {n:'Zone 5',label:'Max',pct:[90,100],cls:'z5',desc:'Maximale inspanning'}
+];
+
+const FASE_BADGE={Basis:'badge-basis',Opbouw:'badge-opbouw',Intensief:'badge-intensief',Piek:'badge-piek',Afbouw:'badge-afbouw',Rust:'badge-rust'};
+
+let sb=null, gebruikerId='', vinkjes={}, trainingen=[], maxHr=185;
+
+async function verbinden(){
+  const url=document.getElementById('sbUrl').value.trim();
+  const key=document.getElementById('sbKey').value.trim();
+  const naam=document.getElementById('gebruikersnaam').value.trim().toLowerCase();
+  const fout=document.getElementById('foutBericht');
+  fout.style.display='none';
+  if(!url||!key||!naam){fout.textContent='Vul alle velden in.';fout.style.display='block';return;}
+  try{
+    sb=supabase.createClient(url,key);
+    const {error}=await sb.from('trainingen').select('id').limit(1);
+    if(error)throw error;
+    gebruikerId=naam;
+    localStorage.setItem('sb_url',url);localStorage.setItem('sb_key',key);localStorage.setItem('sb_user',naam);
+    await laadAlles();
+    document.getElementById('setupScherm').style.display='none';
+    document.getElementById('hoofdApp').classList.add('zichtbaar');
+    document.getElementById('statusDot').classList.add('verbonden');
+    document.getElementById('statusTekst').textContent='Verbonden · '+naam;
+  }catch(e){fout.textContent='Verbinding mislukt: '+e.message;fout.style.display='block';}
+}
+
+async function laadAlles(){
+  await laadVinkjes();await laadTrainingen();await laadInstellingen();
+  bouwSchema();toonLogs();renderZones();
+}
+
+async function laadVinkjes(){
+  const {data}=await sb.from('schema_vinkjes').select('*').eq('user_id',gebruikerId);
+  vinkjes={};
+  (data||[]).forEach(r=>{vinkjes[`${r.week}_${r.dag}`]=r.gedaan;});
+}
+
+async function laadTrainingen(){
+  const {data}=await sb.from('trainingen').select('*').eq('user_id',gebruikerId).order('datum',{ascending:false});
+  trainingen=data||[];
+}
+
+async function laadInstellingen(){
+  const {data}=await sb.from('instellingen').select('*').eq('user_id',gebruikerId).single();
+  if(data){maxHr=data.max_hr||185;}
+  document.getElementById('maxHr').value=maxHr;
+}
+
+async function toggleVinkje(week,dag,btn){
+  const key=`${week}_${dag}`;
+  const nieuw=!vinkjes[key];
+  vinkjes[key]=nieuw;
+  btn.classList.toggle('gedaan',nieuw);btn.textContent=nieuw?'✓':'';
+  await sb.from('schema_vinkjes').upsert({user_id:gebruikerId,week,dag,gedaan:nieuw},{onConflict:'user_id,week,dag'});
+}
+
+async function trainingOpslaan(){
+  const datum=document.getElementById('logDatum').value;
+  const km=parseFloat(document.getElementById('logKm').value);
+  const fout=document.getElementById('logFout');
+  fout.style.display='none';
+  if(!datum||!km){fout.textContent='Datum en afstand zijn verplicht.';fout.style.display='block';return;}
+  const record={
+    user_id:gebruikerId,datum,
+    type:document.getElementById('logType').value,
+    km,
+    tijd_min:parseInt(document.getElementById('logTijd').value)||null,
+    hr_avg:parseInt(document.getElementById('logHrGem').value)||null,
+    hr_max:parseInt(document.getElementById('logHrMax').value)||null,
+    hr_min:parseInt(document.getElementById('logHrMin').value)||null,
+    notitie:document.getElementById('logNotitie').value.trim()||null
+  };
+  const btn=document.getElementById('opslaanBtn');
+  btn.textContent='Opslaan...';btn.disabled=true;
+  const {data,error}=await sb.from('trainingen').insert(record).select().single();
+  btn.textContent='Training opslaan';btn.disabled=false;
+  if(error){fout.textContent='Fout: '+error.message;fout.style.display='block';return;}
+  trainingen.unshift(data);toonLogs();
+  ['logKm','logTijd','logNotitie','logHrGem','logHrMax','logHrMin'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('zoneHint').textContent='';
+}
+
+async function slaInstellingenOp(){
+  await sb.from('instellingen').upsert({user_id:gebruikerId,max_hr:maxHr},{onConflict:'user_id'});
+  renderZones();
+}
+
+function getZone(bpm){
+  if(!bpm||!maxHr)return null;
+  const pct=bpm/maxHr*100;
+  for(let i=0;i<ZONES.length;i++){if(pct>=ZONES[i].pct[0]&&pct<ZONES[i].pct[1])return i;}
+  return pct>=90?4:0;
+}
+
+function updateZoneHint(){
+  const val=parseInt(document.getElementById('logHrGem').value);
+  const hint=document.getElementById('zoneHint');
+  if(!val){hint.textContent='';return;}
+  const zi=getZone(val);
+  if(zi===null){hint.textContent='';return;}
+  const z=ZONES[zi];
+  hint.innerHTML=`Valt in <span class="zone-tag ${z.cls}">${z.n} — ${z.label}</span> · ${z.desc}`;
+}
+
+function schatMaxHr(){
+  const age=parseInt(document.getElementById('leeftijd').value);
+  if(age>0){maxHr=220-age;document.getElementById('maxHr').value=maxHr;}
+}
+
+function updateZones(){
+  const v=parseInt(document.getElementById('maxHr').value);
+  if(v>0)maxHr=v;
+  renderZones();
+}
+
+function bouwSchema(){
+  const el=document.getElementById('weekLijst');
+  el.innerHTML=PLAN.map(w=>`
+    <div class="week-kaart">
+      <div class="week-header" onclick="toggleWeek(${w.w})">
+        <div>
+          <div class="week-titel">Week ${w.w} <span style="font-size:12px;color:var(--tekst-zacht);font-weight:400">— ${w.km} km</span></div>
+          <div class="week-sub">${w.fase} fase</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="badge ${FASE_BADGE[w.fase]}">${w.fase}</span>
+          <span class="chevron" id="chev${w.w}">›</span>
+        </div>
+      </div>
+      <div class="week-body" id="wb${w.w}">
+        ${w.dagen.map((d,i)=>{
+          const isDone=vinkjes[`${w.w}_${i}`];
+          return `<div class="dag-rij">
+            <span class="dag-naam">${d.d}</span>
+            <span class="dag-omschrijving">${d.t}</span>
+            <div class="dag-rechts">
+              ${d.km>0?`<span class="dag-km">${d.km}km</span>`:''}
+              <button class="vink-btn${isDone?' gedaan':''}" onclick="toggleVinkje(${w.w},${i},this)">${isDone?'✓':''}</button>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`).join('');
+}
+
+function toggleWeek(w){
+  const b=document.getElementById('wb'+w);const c=document.getElementById('chev'+w);
+  const o=b.classList.toggle('open');c.classList.toggle('open',o);
+}
+
+function toonLogs(){
+  const el=document.getElementById('logLijst');
+  if(!trainingen.length){el.innerHTML='<div class="leeg">Nog geen trainingen gelogd.</div>';return;}
+  el.innerHTML=trainingen.map(l=>{
+    const zi=l.hr_avg?getZone(l.hr_avg):null;
+    const z=zi!==null?ZONES[zi]:null;
+    const pills=[];
+    if(l.tijd_min)pills.push(`<span class="pill">${l.tijd_min} min</span>`);
+    if(l.hr_avg)pills.push(`<span class="pill pill-hr ${z?z.cls:''}">${l.hr_avg} bpm${z?' · '+z.label:''}</span>`);
+    if(l.hr_max)pills.push(`<span class="pill">max ${l.hr_max}</span>`);
+    if(l.hr_min)pills.push(`<span class="pill">min ${l.hr_min}</span>`);
+    return `<div class="log-item">
+      <div class="log-top">
+        <div>
+          <div class="log-datum">${formatDatum(l.datum)}</div>
+          <div class="log-type">${l.type}</div>
+          ${pills.length?`<div class="log-pills" style="margin-top:6px">${pills.join('')}</div>`:''}
+          ${l.notitie?`<div class="log-notitie">${l.notitie}</div>`:''}
+        </div>
+        <div class="log-km">${parseFloat(l.km).toFixed(1)}<span class="log-km-unit"> km</span></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function formatDatum(d){if(!d)return'';const[y,m,day]=d.split('-');return`${day}-${m}-${y}`;}
+
+function toonScherm(id,btn){
+  document.querySelectorAll('.scherm').forEach(s=>s.classList.remove('actief'));
+  document.querySelectorAll('.nav button').forEach(b=>b.classList.remove('actief'));
+  document.getElementById(id).classList.add('actief');
+  if(btn)btn.classList.add('actief');
+  if(id==='voortgang')renderVoortgang();
+  if(id==='zones'){document.getElementById('maxHr').value=maxHr;renderZones();}
+}
+
+function renderVoortgang(){
+  const totaalT=PLAN.reduce((a,w)=>a+w.dagen.filter(d=>d.km>0).length,0);
+  const gedaan=Object.values(vinkjes).filter(Boolean).length;
+  const wekenKlaar=PLAN.filter(w=>w.dagen.every((_,i)=>vinkjes[`${w.w}_${i}`]||w.dagen[i].km===0)).length;
+  const totaalKm=trainingen.reduce((a,l)=>a+parseFloat(l.km||0),0);
+  const hrLogs=trainingen.filter(l=>l.hr_avg);
+  const gemHr=hrLogs.length?hrLogs.reduce((a,l)=>a+l.hr_avg,0)/hrLogs.length:0;
+
+  document.getElementById('statsGrid').innerHTML=`
+    <div class="stat"><div class="stat-label">Runs gelogd</div><div class="stat-val">${trainingen.length}</div></div>
+    <div class="stat"><div class="stat-label">Totaal km</div><div class="stat-val">${Math.round(totaalKm)}<span class="stat-unit"> km</span></div></div>
+    <div class="stat"><div class="stat-label">Gem. hartslag</div><div class="stat-val">${gemHr?Math.round(gemHr):'—'}<span class="stat-unit">${gemHr?' bpm':''}</span></div></div>
+    <div class="stat"><div class="stat-label">Schema %</div><div class="stat-val">${Math.round(gedaan/Math.max(totaalT,1)*100)}<span class="stat-unit">%</span></div></div>`;
+
+  document.getElementById('progTekst').textContent=`${gedaan} / ${totaalT}`;
+  document.getElementById('progBalk').style.width=Math.round(gedaan/Math.max(totaalT,1)*100)+'%';
+  document.getElementById('weekTekst').textContent=`${wekenKlaar} / 24`;
+  document.getElementById('weekBalk').style.width=Math.round(wekenKlaar/24*100)+'%';
+
+  const recent=trainingen.slice(0,12).reverse();
+  const labels=recent.map(l=>formatDatum(l.datum).slice(0,5));
+  const kmData=recent.map(l=>parseFloat(parseFloat(l.km).toFixed(1)));
+  const hrData=recent.map(l=>l.hr_avg||null);
+
+  if(window._kmC)window._kmC.destroy();
+  window._kmC=new Chart(document.getElementById('kmGrafiek'),{type:'bar',data:{labels,datasets:[{data:kmData,backgroundColor:'#1D9E75',borderRadius:3,borderSkipped:false}]},options:{plugins:{legend:{display:false}},scales:{x:{ticks:{font:{size:10}},grid:{display:false}},y:{ticks:{font:{size:11}},grid:{color:'rgba(0,0,0,0.05)'}}},animation:false}});
+
+  if(window._hrC)window._hrC.destroy();
+  window._hrC=new Chart(document.getElementById('hrGrafiek'),{type:'line',data:{labels,datasets:[{data:hrData,borderColor:'#D85A30',backgroundColor:'rgba(216,90,48,0.07)',pointBackgroundColor:'#D85A30',tension:0.3,fill:true,spanGaps:true}]},options:{plugins:{legend:{display:false}},scales:{x:{ticks:{font:{size:10}},grid:{display:false}},y:{ticks:{font:{size:11}},grid:{color:'rgba(0,0,0,0.05)'}}},animation:false}});
+}
+
+function renderZones(){
+  const el=document.getElementById('zonesGrid');
+  el.innerHTML=ZONES.map(z=>{
+    const lo=Math.round(maxHr*z.pct[0]/100);
+    const hi=Math.round(maxHr*z.pct[1]/100);
+    return `<div class="zone-kaart ${z.cls}" style="border-color:currentColor;border-width:0.5px">
+      <div class="zone-naam">${z.n} — ${z.label}</div>
+      <div class="zone-bpm">${lo}–${hi} bpm</div>
+      <div class="zone-desc">${z.desc}</div>
+    </div>`;
+  }).join('');
+  const counts=[0,0,0,0,0];
+  trainingen.forEach(l=>{if(l.hr_avg){const zi=getZone(l.hr_avg);if(zi!==null)counts[zi]++;}});
+  if(window._zC)window._zC.destroy();
+  window._zC=new Chart(document.getElementById('zoneGrafiek'),{type:'bar',data:{labels:ZONES.map(z=>z.n+' · '+z.label),datasets:[{data:counts,backgroundColor:['#5DCAA5','#85B7EB','#97C459','#EF9F27','#F0997B'],borderRadius:3,borderSkipped:false}]},options:{indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{ticks:{font:{size:11},stepSize:1},grid:{color:'rgba(0,0,0,0.05)'}},y:{ticks:{font:{size:12}},grid:{display:false}}},animation:false}});
+}
+
+// Auto-verbinden als gegevens opgeslagen zijn
+window.addEventListener('DOMContentLoaded',()=>{
+  document.getElementById('logDatum').valueAsDate=new Date();
+  const url=localStorage.getItem('sb_url');
+  const key=localStorage.getItem('sb_key');
+  const user=localStorage.getItem('sb_user');
+  if(url&&key&&user){
+    document.getElementById('sbUrl').value=url;
+    document.getElementById('sbKey').value=key;
+    document.getElementById('gebruikersnaam').value=user;
+    verbinden();
+  } else {
+    document.getElementById('statusTekst').textContent='Niet verbonden';
+  }
+});
+</script>
+</body>
+</html>
