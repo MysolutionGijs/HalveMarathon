@@ -144,7 +144,8 @@
 
   /* LAADBERICHT */
   .laden { text-align: center; padding: 40px; color: var(--tekst-zacht); font-size: 14px; }
-  .fout-bericht { background: #FAECE7; color: #712B13; border-radius: var(--radius-sm); padding: 10px 14px; font-size: 13px; margin-bottom: 12px; display: none; }
+  .fout-bericht { background: #FAECE7; color: #712B13; border-radius: var(--radius-sm); padding: 12px 14px; font-size: 13px; margin-bottom: 12px; display: none; line-height: 1.6; }
+  .fout-bericht code { background: rgba(0,0,0,0.08); padding: 1px 5px; border-radius: 3px; font-family: 'DM Mono', monospace; font-size: 12px; }
 
   @media (max-width: 520px) {
     .form-rij, .form-rij-3 { grid-template-columns: 1fr; }
@@ -318,12 +319,40 @@ async function verbinden(){
   const key=document.getElementById('sbKey').value.trim();
   const naam=document.getElementById('gebruikersnaam').value.trim().toLowerCase();
   const fout=document.getElementById('foutBericht');
+  const btn=document.querySelector('#setupScherm .btn-primary');
   fout.style.display='none';
-  if(!url||!key||!naam){fout.textContent='Vul alle velden in.';fout.style.display='block';return;}
+
+  if(!url||!key||!naam){
+    fout.innerHTML='Vul alle velden in.';
+    fout.style.display='block';return;
+  }
+  if(!url.startsWith('https://')){
+    fout.innerHTML='Project URL moet beginnen met <strong>https://</strong> — bijv. https://xxxx.supabase.co';
+    fout.style.display='block';return;
+  }
+
+  btn.textContent='Verbinden...';btn.disabled=true;
+
   try{
     sb=supabase.createClient(url,key);
-    const {error}=await sb.from('trainingen').select('id').limit(1);
-    if(error)throw error;
+    const {data,error}=await sb.from('trainingen').select('id').limit(1);
+
+    if(error){
+      if(error.code==='42P01'||error.message.includes('does not exist')){
+        fout.innerHTML='❌ Tabellen niet gevonden. Heb je de SQL al uitgevoerd in Supabase?<br><br>'
+          +'<strong>Oplossing:</strong> Ga naar je Supabase project → <strong>SQL Editor</strong> → plak de inhoud van <code>supabase_setup.sql</code> → klik <strong>Run</strong>.';
+      } else if(error.message.includes('Invalid API key')||error.message.includes('apikey')||error.message.includes('401')){
+        fout.innerHTML='❌ Ongeldige API key. Controleer of je de juiste key hebt gekopieerd uit <strong>Settings → API</strong>.';
+      } else if(error.message.includes('fetch')||error.message.includes('network')||error.message.includes('Failed')){
+        fout.innerHTML='❌ Kan Supabase niet bereiken. Controleer je Project URL — die ziet er zo uit: <code>https://xxxx.supabase.co</code>';
+      } else {
+        fout.innerHTML='❌ Fout: <code>'+error.message+'</code> (code: '+error.code+')';
+      }
+      fout.style.display='block';
+      btn.textContent='Verbinden en starten';btn.disabled=false;
+      return;
+    }
+
     gebruikerId=naam;
     localStorage.setItem('sb_url',url);localStorage.setItem('sb_key',key);localStorage.setItem('sb_user',naam);
     await laadAlles();
@@ -331,7 +360,15 @@ async function verbinden(){
     document.getElementById('hoofdApp').classList.add('zichtbaar');
     document.getElementById('statusDot').classList.add('verbonden');
     document.getElementById('statusTekst').textContent='Verbonden · '+naam;
-  }catch(e){fout.textContent='Verbinding mislukt: '+e.message;fout.style.display='block';}
+  }catch(e){
+    let msg=e.message||'Onbekende fout';
+    if(msg.includes('fetch')||msg.includes('Failed to fetch')||msg.includes('NetworkError')){
+      msg='Kan Supabase niet bereiken. Controleer je Project URL en internetverbinding.';
+    }
+    fout.innerHTML='❌ '+msg;
+    fout.style.display='block';
+    btn.textContent='Verbinden en starten';btn.disabled=false;
+  }
 }
 
 async function laadAlles(){
