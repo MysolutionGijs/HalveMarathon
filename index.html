@@ -167,16 +167,11 @@
 <div class="setup" id="setupScherm">
   <div class="setup-card">
     <h2>Welkom bij je trainer</h2>
-    <p>Vul je Supabase-gegevens in om te beginnen. Je vindt deze in je Supabase-project onder <strong>Settings → API</strong>.</p>
+    <p>Voer je naam in om te starten. Gebruik dezelfde naam op al je apparaten zodat je trainingen overal gesynchroniseerd zijn.</p>
     <div class="fout-bericht" id="foutBericht"></div>
-    <label>Supabase Project URL</label>
-    <input type="text" id="sbUrl" placeholder="https://xxxx.supabase.co">
-    <label>Supabase Anon Key</label>
-    <input type="text" id="sbKey" placeholder="eyJhbGci...">
-    <label>Jouw naam (voor synchronisatie)</label>
-    <input type="text" id="gebruikersnaam" placeholder="bijv. jan">
-    <p class="hint">Je naam wordt gebruikt als gebruikers-ID zodat jouw gegevens apart opgeslagen worden. Gebruik dezelfde naam op al je apparaten.</p>
-    <button class="btn btn-primary" onclick="verbinden()">Verbinden en starten</button>
+    <label>Jouw naam</label>
+    <input type="text" id="gebruikersnaam" placeholder="bijv. jan" autofocus>
+    <button class="btn btn-primary" onclick="verbinden()">Starten</button>
   </div>
 </div>
 
@@ -221,13 +216,10 @@
         <div class="form-groep"><label>Tijd (min)</label><input type="number" id="logTijd" min="0" placeholder="45"></div>
       </div>
       <hr class="scheidslijn">
-      <div class="hr-sectie-titel">Hartslag</div>
-      <div class="form-rij-3">
-        <div class="form-groep"><label>Gemiddeld (bpm)</label><input type="number" id="logHrGem" min="40" max="220" placeholder="bijv. 145" oninput="updateZoneHint()"></div>
-        <div class="form-groep"><label>Maximum (bpm)</label><input type="number" id="logHrMax" min="40" max="220" placeholder="bijv. 168"></div>
-        <div class="form-groep"><label>Minimum (bpm)</label><input type="number" id="logHrMin" min="40" max="220" placeholder="bijv. 118"></div>
+      <div class="form-rij">
+        <div class="form-groep"><label>Gemiddelde hartslag (bpm)</label><input type="number" id="logHrGem" min="40" max="220" placeholder="bijv. 145" oninput="updateZoneHint()"></div>
+        <div class="form-groep" style="display:flex;align-items:flex-end"><div class="zone-hint" id="zoneHint" style="margin:0"></div></div>
       </div>
-      <div class="zone-hint" id="zoneHint"></div>
       <div class="form-groep" style="margin-bottom:14px"><label>Notitie</label><textarea id="logNotitie" placeholder="Hoe voelde het?"></textarea></div>
       <button class="btn btn-primary" onclick="trainingOpslaan()" id="opslaanBtn">Training opslaan</button>
     </div>
@@ -314,9 +306,12 @@ const FASE_BADGE={Basis:'badge-basis',Opbouw:'badge-opbouw',Intensief:'badge-int
 
 let sb=null, gebruikerId='', vinkjes={}, trainingen=[], maxHr=185;
 
+const SB_URL='https://kwijbspfugcygrmloibq.supabase.co';
+const SB_KEY='sb_publishable_HrKjiH6ra5Q9AMO9qk5wQg_J7ZTEudh';
+
 async function verbinden(){
-  const url=document.getElementById('sbUrl').value.trim();
-  const key=document.getElementById('sbKey').value.trim();
+  const url=SB_URL;
+  const key=SB_KEY;
   const naam=document.getElementById('gebruikersnaam').value.trim().toLowerCase();
   const fout=document.getElementById('foutBericht');
   const btn=document.querySelector('#setupScherm .btn-primary');
@@ -354,7 +349,7 @@ async function verbinden(){
     }
 
     gebruikerId=naam;
-    localStorage.setItem('sb_url',url);localStorage.setItem('sb_key',key);localStorage.setItem('sb_user',naam);
+    localStorage.setItem('sb_user',naam);
     await laadAlles();
     document.getElementById('setupScherm').style.display='none';
     document.getElementById('hoofdApp').classList.add('zichtbaar');
@@ -413,8 +408,8 @@ async function trainingOpslaan(){
     km,
     tijd_min:parseInt(document.getElementById('logTijd').value)||null,
     hr_avg:parseInt(document.getElementById('logHrGem').value)||null,
-    hr_max:parseInt(document.getElementById('logHrMax').value)||null,
-    hr_min:parseInt(document.getElementById('logHrMin').value)||null,
+    
+    
     notitie:document.getElementById('logNotitie').value.trim()||null
   };
   const btn=document.getElementById('opslaanBtn');
@@ -423,7 +418,7 @@ async function trainingOpslaan(){
   btn.textContent='Training opslaan';btn.disabled=false;
   if(error){fout.textContent='Fout: '+error.message;fout.style.display='block';return;}
   trainingen.unshift(data);toonLogs();
-  ['logKm','logTijd','logNotitie','logHrGem','logHrMax','logHrMin'].forEach(id=>document.getElementById(id).value='');
+  ['logKm','logTijd','logNotitie','logHrGem'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('zoneHint').textContent='';
 }
 
@@ -504,8 +499,6 @@ function toonLogs(){
     const pills=[];
     if(l.tijd_min)pills.push(`<span class="pill">${l.tijd_min} min</span>`);
     if(l.hr_avg)pills.push(`<span class="pill pill-hr ${z?z.cls:''}">${l.hr_avg} bpm${z?' · '+z.label:''}</span>`);
-    if(l.hr_max)pills.push(`<span class="pill">max ${l.hr_max}</span>`);
-    if(l.hr_min)pills.push(`<span class="pill">min ${l.hr_min}</span>`);
     return `<div class="log-item">
       <div class="log-top">
         <div>
@@ -579,19 +572,15 @@ function renderZones(){
   window._zC=new Chart(document.getElementById('zoneGrafiek'),{type:'bar',data:{labels:ZONES.map(z=>z.n+' · '+z.label),datasets:[{data:counts,backgroundColor:['#5DCAA5','#85B7EB','#97C459','#EF9F27','#F0997B'],borderRadius:3,borderSkipped:false}]},options:{indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{ticks:{font:{size:11},stepSize:1},grid:{color:'rgba(0,0,0,0.05)'}},y:{ticks:{font:{size:12}},grid:{display:false}}},animation:false}});
 }
 
-// Auto-verbinden als gegevens opgeslagen zijn
+// Auto-verbinden als naam bekend is
 window.addEventListener('DOMContentLoaded',()=>{
   document.getElementById('logDatum').valueAsDate=new Date();
-  const url=localStorage.getItem('sb_url');
-  const key=localStorage.getItem('sb_key');
   const user=localStorage.getItem('sb_user');
-  if(url&&key&&user){
-    document.getElementById('sbUrl').value=url;
-    document.getElementById('sbKey').value=key;
+  if(user){
     document.getElementById('gebruikersnaam').value=user;
     verbinden();
   } else {
-    document.getElementById('statusTekst').textContent='Niet verbonden';
+    document.getElementById('statusTekst').textContent='Vul je naam in';
   }
 });
 </script>
