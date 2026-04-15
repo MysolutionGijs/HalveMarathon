@@ -32,8 +32,9 @@
   .status-tekst { font-size: 12px; color: var(--tekst-zacht); }
 
   /* SETUP SCHERM */
-  .setup { max-width: 480px; margin: 60px auto; padding: 0 20px; }
-  .setup-card { background: var(--wit); border-radius: var(--radius); border: 1px solid var(--rand); padding: 32px; }
+  .setup { max-width: 880px; margin: 40px auto; padding: 0 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: center; }
+  @media(max-width:680px){ .setup { grid-template-columns: 1fr; } .setup-graphic { display: none; } }
+  .setup-card { background: var(--wit); border-radius: var(--radius); border: 1px solid var(--rand); padding: 36px; }
   .setup-card h2 { font-size: 20px; font-weight: 500; margin-bottom: 8px; }
   .setup-card p { font-size: 14px; color: var(--tekst-zacht); line-height: 1.6; margin-bottom: 24px; }
   .setup-card label { font-size: 12px; color: var(--tekst-zacht); display: block; margin-bottom: 5px; }
@@ -44,6 +45,31 @@
   .btn:hover { background: var(--achtergrond); }
   .btn-primary { background: var(--groen); color: white; border-color: var(--groen); }
   .btn-primary:hover { opacity: 0.9; background: var(--groen); }
+
+  /* GRAPHIC ZIJDE */
+  .setup-graphic { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 28px; }
+  .mysolution-logo { display: flex; align-items: center; gap: 10px; }
+  .mysolution-logo svg { width: 36px; height: 36px; }
+  .mysolution-logo-text { font-size: 18px; font-weight: 500; color: var(--tekst); letter-spacing: -0.3px; }
+  .mysolution-logo-text span { color: #E91E8C; }
+  .collega-bericht { text-align: center; }
+  .collega-bericht .voor { font-size: 12px; color: var(--tekst-zacht); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
+  .collega-namen { font-size: 28px; font-weight: 500; line-height: 1.2; color: #E91E8C; }
+  .collega-naam { display: inline-block; opacity: 0; transform: translateY(12px); }
+  .collega-naam.zichtbaar { animation: opkomen 0.6s ease forwards; }
+  .collega-naam.en { font-size: 16px; color: var(--tekst-zacht); display: block; margin: 4px 0; font-weight: 400; }
+  @keyframes opkomen { to { opacity: 1; transform: translateY(0); } }
+  .hart-container { position: relative; height: 80px; width: 120px; }
+  .hart { position: absolute; font-size: 20px; opacity: 0; animation: zweef 3s ease-in-out infinite; }
+  @keyframes zweef {
+    0% { opacity: 0; transform: translateY(0) scale(0.8); }
+    20% { opacity: 1; }
+    80% { opacity: 0.6; }
+    100% { opacity: 0; transform: translateY(-70px) scale(1.2); }
+  }
+  .runner-svg { animation: rendloop 1.2s ease-in-out infinite alternate; }
+  @keyframes rendloop { from { transform: translateY(0px); } to { transform: translateY(-6px); } }
+  .collega-kaartje { background: white; border: 1px solid var(--rand); border-radius: var(--radius); padding: 20px 24px; text-align: center; box-shadow: 0 2px 16px rgba(233,30,140,0.07); }
 
   /* HOOFD LAYOUT */
   .app { display: none; max-width: 800px; margin: 0 auto; padding: 24px 20px; }
@@ -174,6 +200,50 @@
 
 <!-- SETUP SCHERM -->
 <div class="setup" id="setupScherm">
+
+  <!-- GRAFISCHE ZIJDE -->
+  <div class="setup-graphic">
+    <div class="mysolution-logo">
+      <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect width="40" height="40" rx="10" fill="#E91E8C"/>
+        <path d="M8 28 L14 14 L20 24 L26 14 L32 28" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+        <circle cx="20" cy="11" r="3" fill="white" opacity="0.9"/>
+      </svg>
+      <div class="mysolution-logo-text">my<span>solution</span></div>
+    </div>
+
+    <div class="collega-kaartje">
+      <div class="collega-bericht">
+        <div class="voor">Speciaal voor mijn favoriete collega&#8217;s</div>
+        <div class="collega-namen">
+          <span class="collega-naam" id="naamRien">Rien</span>
+          <span class="collega-naam en" id="naamEn">&amp;</span>
+          <span class="collega-naam" id="naamLiza">Liza</span>
+        </div>
+      </div>
+
+      <div class="hart-container" style="margin:16px auto 0">
+        <span class="hart" style="left:10px;animation-delay:0s;color:#E91E8C">&#9829;</span>
+        <span class="hart" style="left:40px;animation-delay:0.8s;color:#E91E8C;font-size:14px">&#9829;</span>
+        <span class="hart" style="left:70px;animation-delay:1.6s;color:#E91E8C;font-size:24px">&#9829;</span>
+        <span class="hart" style="left:95px;animation-delay:0.4s;color:#E91E8C;font-size:12px">&#9829;</span>
+      </div>
+
+      <!-- Lopende figuur SVG -->
+      <div style="margin-top:8px;display:flex;justify-content:center">
+        <svg class="runner-svg" width="60" height="60" viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="32" cy="10" r="5" fill="#E91E8C"/>
+          <line x1="32" y1="15" x2="28" y2="30" stroke="#E91E8C" stroke-width="2.5" stroke-linecap="round"/>
+          <line x1="28" y1="30" x2="18" y2="42" stroke="#E91E8C" stroke-width="2.5" stroke-linecap="round"/>
+          <line x1="28" y1="30" x2="36" y2="44" stroke="#E91E8C" stroke-width="2.5" stroke-linecap="round"/>
+          <line x1="28" y1="20" x2="16" y2="18" stroke="#E91E8C" stroke-width="2.5" stroke-linecap="round"/>
+          <line x1="28" y1="20" x2="38" y2="24" stroke="#E91E8C" stroke-width="2.5" stroke-linecap="round"/>
+        </svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- INLOG KAART -->
   <div class="setup-card">
     <h2>Welkom bij je trainer</h2>
     <p>Voer je naam in om te starten. Gebruik dezelfde naam op al je apparaten zodat je trainingen overal gesynchroniseerd zijn.</p>
@@ -182,6 +252,7 @@
     <input type="text" id="gebruikersnaam" placeholder="bijv. jan" autofocus>
     <button class="btn btn-primary" onclick="verbinden()">Starten</button>
   </div>
+
 </div>
 
 <!-- HOOFD APP -->
@@ -639,6 +710,11 @@ function renderZones(){
 
 // Auto-verbinden als naam bekend is
 window.addEventListener('DOMContentLoaded',()=>{
+  // Animeer de namen met vertraging
+  setTimeout(()=>document.getElementById('naamRien').classList.add('zichtbaar'), 300);
+  setTimeout(()=>document.getElementById('naamEn').classList.add('zichtbaar'), 700);
+  setTimeout(()=>document.getElementById('naamLiza').classList.add('zichtbaar'), 1100);
+
   document.getElementById('logDatum').valueAsDate=new Date();
   const user=localStorage.getItem('sb_user');
   if(user){
