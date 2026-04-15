@@ -173,7 +173,9 @@
   .fout-bericht { background: #FAECE7; color: #712B13; border-radius: var(--radius-sm); padding: 12px 14px; font-size: 13px; margin-bottom: 12px; display: none; line-height: 1.6; }
   .fout-bericht code { background: rgba(0,0,0,0.08); padding: 1px 5px; border-radius: 3px; font-family: 'DM Mono', monospace; font-size: 12px; }
 
-  .log-acties { display: flex; gap: 6px; margin-top: 8px; }
+  .dag-disabled { opacity: 0.45; pointer-events: none; }
+  .dag-rustdag { font-style: italic; color: var(--tekst-zacht); }
+    .log-acties { display: flex; gap: 6px; margin-top: 8px; }
   .log-actie-btn { font-size: 12px; padding: 4px 10px; border-radius: var(--radius-sm); border: 1px solid var(--rand); cursor: pointer; background: transparent; font-family: 'DM Sans', sans-serif; color: var(--tekst-zacht); transition: all 0.15s; }
   .log-actie-btn:hover { background: var(--achtergrond); color: var(--tekst); }
   .log-actie-btn.verwijder:hover { background: #FAECE7; color: #712B13; border-color: #F0997B; }
@@ -348,30 +350,30 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script>
 const PLAN=[
-  {w:1,fase:'Basis',km:20,dagen:[{d:'Ma',t:'Rust',km:0},{d:'Di',t:'Duurloop 5km',km:5},{d:'Wo',t:'Rust/wandelen',km:0},{d:'Do',t:'Duurloop 5km',km:5},{d:'Vr',t:'Rust',km:0},{d:'Za',t:'Lange duurloop 10km',km:10},{d:'Zo',t:'Rust',km:0}]},
-  {w:2,fase:'Basis',km:22,dagen:[{d:'Ma',t:'Rust',km:0},{d:'Di',t:'Duurloop 6km',km:6},{d:'Wo',t:'Rust',km:0},{d:'Do',t:'Tempoloop 5km',km:5},{d:'Vr',t:'Rust',km:0},{d:'Za',t:'Lange duurloop 11km',km:11},{d:'Zo',t:'Herstelloop 3km',km:3}]},
-  {w:3,fase:'Basis',km:24,dagen:[{d:'Ma',t:'Rust',km:0},{d:'Di',t:'Duurloop 6km',km:6},{d:'Wo',t:'Rust',km:0},{d:'Do',t:'Duurloop 6km',km:6},{d:'Vr',t:'Rust',km:0},{d:'Za',t:'Lange duurloop 12km',km:12},{d:'Zo',t:'Herstelloop 3km',km:3}]},
-  {w:4,fase:'Rust',km:16,dagen:[{d:'Ma',t:'Rust',km:0},{d:'Di',t:'Duurloop 5km',km:5},{d:'Wo',t:'Rust',km:0},{d:'Do',t:'Duurloop 4km',km:4},{d:'Vr',t:'Rust',km:0},{d:'Za',t:'Lange duurloop 7km',km:7},{d:'Zo',t:'Rust',km:0}]},
-  {w:5,fase:'Opbouw',km:26,dagen:[{d:'Ma',t:'Rust',km:0},{d:'Di',t:'Intervaltraining 6km',km:6},{d:'Wo',t:'Rust',km:0},{d:'Do',t:'Tempoloop 6km',km:6},{d:'Vr',t:'Rust',km:0},{d:'Za',t:'Lange duurloop 14km',km:14},{d:'Zo',t:'Herstelloop 3km',km:3}]},
-  {w:6,fase:'Opbouw',km:28,dagen:[{d:'Ma',t:'Rust',km:0},{d:'Di',t:'Intervaltraining 6km',km:6},{d:'Wo',t:'Herstelloop 4km',km:4},{d:'Do',t:'Tempoloop 7km',km:7},{d:'Vr',t:'Rust',km:0},{d:'Za',t:'Lange duurloop 14km',km:14},{d:'Zo',t:'Herstelloop 4km',km:4}]},
-  {w:7,fase:'Opbouw',km:30,dagen:[{d:'Ma',t:'Rust',km:0},{d:'Di',t:'Tempoloop 7km',km:7},{d:'Wo',t:'Herstelloop 4km',km:4},{d:'Do',t:'Intervaltraining 7km',km:7},{d:'Vr',t:'Rust',km:0},{d:'Za',t:'Lange duurloop 16km',km:16},{d:'Zo',t:'Herstelloop 4km',km:4}]},
-  {w:8,fase:'Rust',km:20,dagen:[{d:'Ma',t:'Rust',km:0},{d:'Di',t:'Duurloop 6km',km:6},{d:'Wo',t:'Rust',km:0},{d:'Do',t:'Duurloop 5km',km:5},{d:'Vr',t:'Rust',km:0},{d:'Za',t:'Lange duurloop 9km',km:9},{d:'Zo',t:'Rust',km:0}]},
-  {w:9,fase:'Intensief',km:34,dagen:[{d:'Ma',t:'Rust',km:0},{d:'Di',t:'Intervaltraining 8km',km:8},{d:'Wo',t:'Herstelloop 5km',km:5},{d:'Do',t:'Tempoloop 8km',km:8},{d:'Vr',t:'Rust',km:0},{d:'Za',t:'Lange duurloop 17km',km:17},{d:'Zo',t:'Herstelloop 4km',km:4}]},
-  {w:10,fase:'Intensief',km:36,dagen:[{d:'Ma',t:'Rust',km:0},{d:'Di',t:'Intervaltraining 8km',km:8},{d:'Wo',t:'Herstelloop 5km',km:5},{d:'Do',t:'Tempoloop 9km',km:9},{d:'Vr',t:'Rust',km:0},{d:'Za',t:'Lange duurloop 18km',km:18},{d:'Zo',t:'Herstelloop 5km',km:5}]},
-  {w:11,fase:'Intensief',km:38,dagen:[{d:'Ma',t:'Rust',km:0},{d:'Di',t:'Tempoloop 9km',km:9},{d:'Wo',t:'Herstelloop 5km',km:5},{d:'Do',t:'Intervaltraining 9km',km:9},{d:'Vr',t:'Rust',km:0},{d:'Za',t:'Lange duurloop 19km',km:19},{d:'Zo',t:'Herstelloop 5km',km:5}]},
-  {w:12,fase:'Rust',km:22,dagen:[{d:'Ma',t:'Rust',km:0},{d:'Di',t:'Duurloop 7km',km:7},{d:'Wo',t:'Rust',km:0},{d:'Do',t:'Duurloop 6km',km:6},{d:'Vr',t:'Rust',km:0},{d:'Za',t:'Lange duurloop 9km',km:9},{d:'Zo',t:'Rust',km:0}]},
-  {w:13,fase:'Piek',km:40,dagen:[{d:'Ma',t:'Rust',km:0},{d:'Di',t:'Intervaltraining 9km',km:9},{d:'Wo',t:'Herstelloop 5km',km:5},{d:'Do',t:'Tempoloop 10km',km:10},{d:'Vr',t:'Rust',km:0},{d:'Za',t:'Lange duurloop 20km',km:20},{d:'Zo',t:'Herstelloop 5km',km:5}]},
-  {w:14,fase:'Piek',km:42,dagen:[{d:'Ma',t:'Rust',km:0},{d:'Di',t:'Tempoloop 10km',km:10},{d:'Wo',t:'Herstelloop 6km',km:6},{d:'Do',t:'Intervaltraining 10km',km:10},{d:'Vr',t:'Rust',km:0},{d:'Za',t:'Lange duurloop 21km',km:21},{d:'Zo',t:'Herstelloop 5km',km:5}]},
-  {w:15,fase:'Piek',km:42,dagen:[{d:'Ma',t:'Rust',km:0},{d:'Di',t:'Intervaltraining 10km',km:10},{d:'Wo',t:'Herstelloop 6km',km:6},{d:'Do',t:'Tempoloop 10km',km:10},{d:'Vr',t:'Rust',km:0},{d:'Za',t:'Lange duurloop 21km',km:21},{d:'Zo',t:'Herstelloop 5km',km:5}]},
-  {w:16,fase:'Rust',km:24,dagen:[{d:'Ma',t:'Rust',km:0},{d:'Di',t:'Duurloop 8km',km:8},{d:'Wo',t:'Rust',km:0},{d:'Do',t:'Duurloop 6km',km:6},{d:'Vr',t:'Rust',km:0},{d:'Za',t:'Lange duurloop 10km',km:10},{d:'Zo',t:'Rust',km:0}]},
-  {w:17,fase:'Opbouw',km:36,dagen:[{d:'Ma',t:'Rust',km:0},{d:'Di',t:'Tempoloop 9km',km:9},{d:'Wo',t:'Herstelloop 5km',km:5},{d:'Do',t:'Intervaltraining 9km',km:9},{d:'Vr',t:'Rust',km:0},{d:'Za',t:'Lange duurloop 18km',km:18},{d:'Zo',t:'Herstelloop 5km',km:5}]},
-  {w:18,fase:'Opbouw',km:38,dagen:[{d:'Ma',t:'Rust',km:0},{d:'Di',t:'Intervaltraining 9km',km:9},{d:'Wo',t:'Herstelloop 5km',km:5},{d:'Do',t:'Tempoloop 10km',km:10},{d:'Vr',t:'Rust',km:0},{d:'Za',t:'Lange duurloop 19km',km:19},{d:'Zo',t:'Herstelloop 5km',km:5}]},
-  {w:19,fase:'Intensief',km:40,dagen:[{d:'Ma',t:'Rust',km:0},{d:'Di',t:'Tempoloop 10km',km:10},{d:'Wo',t:'Herstelloop 6km',km:6},{d:'Do',t:'Intervaltraining 10km',km:10},{d:'Vr',t:'Rust',km:0},{d:'Za',t:'Lange duurloop 20km',km:20},{d:'Zo',t:'Herstelloop 5km',km:5}]},
-  {w:20,fase:'Intensief',km:40,dagen:[{d:'Ma',t:'Rust',km:0},{d:'Di',t:'Intervaltraining 10km',km:10},{d:'Wo',t:'Herstelloop 6km',km:6},{d:'Do',t:'Tempoloop 10km',km:10},{d:'Vr',t:'Rust',km:0},{d:'Za',t:'Lange duurloop 20km',km:20},{d:'Zo',t:'Herstelloop 5km',km:5}]},
-  {w:21,fase:'Afbouw',km:30,dagen:[{d:'Ma',t:'Rust',km:0},{d:'Di',t:'Duurloop 8km',km:8},{d:'Wo',t:'Herstelloop 4km',km:4},{d:'Do',t:'Tempoloop 7km',km:7},{d:'Vr',t:'Rust',km:0},{d:'Za',t:'Lange duurloop 14km',km:14},{d:'Zo',t:'Herstelloop 4km',km:4}]},
-  {w:22,fase:'Afbouw',km:22,dagen:[{d:'Ma',t:'Rust',km:0},{d:'Di',t:'Duurloop 6km',km:6},{d:'Wo',t:'Rust',km:0},{d:'Do',t:'Tempoloop 5km',km:5},{d:'Vr',t:'Rust',km:0},{d:'Za',t:'Duurloop 10km',km:10},{d:'Zo',t:'Herstelloop 4km',km:4}]},
-  {w:23,fase:'Afbouw',km:14,dagen:[{d:'Ma',t:'Rust',km:0},{d:'Di',t:'Duurloop 5km',km:5},{d:'Wo',t:'Rust',km:0},{d:'Do',t:'Loopdril 3km',km:3},{d:'Vr',t:'Rust',km:0},{d:'Za',t:'Rustige duurloop 6km',km:6},{d:'Zo',t:'Rust',km:0}]},
-  {w:24,fase:'Afbouw',km:21,dagen:[{d:'Ma',t:'Rust',km:0},{d:'Di',t:'Korte duurloop 3km',km:3},{d:'Wo',t:'Rust',km:0},{d:'Do',t:'Lichte activering 2km',km:2},{d:'Vr',t:'Rust',km:0},{d:'Za',t:'Rust',km:0},{d:'Zo',t:'HALVE MARATHON 21.1km',km:21.1}]}
+  {w:1,fase:'Basis',km:20,dagen:[{d:'Ma',t:'Rust',km:0},{d:'Di',t:'Duurloop 5km',km:5},{d:'Wo',t:'Rust/wandelen',km:0},{d:'Do',t:'Duurloop 5km',km:5},{d:'Vr',t:'Rust',km:0},{d:'Za',t:'Lange duurloop 10km',km:10},{d:'Zo',t:'Rustdag',km:0,disabled:true}]},
+  {w:2,fase:'Basis',km:22,dagen:[{d:'Ma',t:'Rust',km:0},{d:'Di',t:'Duurloop 6km',km:6},{d:'Wo',t:'Rust',km:0},{d:'Do',t:'Tempoloop 5km',km:5},{d:'Vr',t:'Rust',km:0},{d:'Za',t:'Lange duurloop 11km',km:11},{d:'Zo',t:'Rustdag',km:0,disabled:true}]},
+  {w:3,fase:'Basis',km:24,dagen:[{d:'Ma',t:'Rust',km:0},{d:'Di',t:'Duurloop 6km',km:6},{d:'Wo',t:'Rust',km:0},{d:'Do',t:'Duurloop 6km',km:6},{d:'Vr',t:'Rust',km:0},{d:'Za',t:'Lange duurloop 12km',km:12},{d:'Zo',t:'Rustdag',km:0,disabled:true}]},
+  {w:4,fase:'Rust',km:16,dagen:[{d:'Ma',t:'Rust',km:0},{d:'Di',t:'Duurloop 5km',km:5},{d:'Wo',t:'Rust',km:0},{d:'Do',t:'Duurloop 4km',km:4},{d:'Vr',t:'Rust',km:0},{d:'Za',t:'Lange duurloop 7km',km:7},{d:'Zo',t:'Rustdag',km:0,disabled:true}]},
+  {w:5,fase:'Opbouw',km:26,dagen:[{d:'Ma',t:'Rust',km:0},{d:'Di',t:'Intervaltraining 6km',km:6},{d:'Wo',t:'Rust',km:0},{d:'Do',t:'Tempoloop 6km',km:6},{d:'Vr',t:'Rust',km:0},{d:'Za',t:'Lange duurloop 14km',km:14},{d:'Zo',t:'Rustdag',km:0,disabled:true}]},
+  {w:6,fase:'Opbouw',km:28,dagen:[{d:'Ma',t:'Rust',km:0},{d:'Di',t:'Intervaltraining 6km',km:6},{d:'Wo',t:'Herstelloop 4km',km:4},{d:'Do',t:'Tempoloop 7km',km:7},{d:'Vr',t:'Rust',km:0},{d:'Za',t:'Lange duurloop 14km',km:14},{d:'Zo',t:'Rustdag',km:0,disabled:true}]},
+  {w:7,fase:'Opbouw',km:30,dagen:[{d:'Ma',t:'Rust',km:0},{d:'Di',t:'Tempoloop 7km',km:7},{d:'Wo',t:'Herstelloop 4km',km:4},{d:'Do',t:'Intervaltraining 7km',km:7},{d:'Vr',t:'Rust',km:0},{d:'Za',t:'Lange duurloop 16km',km:16},{d:'Zo',t:'Rustdag',km:0,disabled:true}]},
+  {w:8,fase:'Rust',km:20,dagen:[{d:'Ma',t:'Rust',km:0},{d:'Di',t:'Duurloop 6km',km:6},{d:'Wo',t:'Rust',km:0},{d:'Do',t:'Duurloop 5km',km:5},{d:'Vr',t:'Rust',km:0},{d:'Za',t:'Lange duurloop 9km',km:9},{d:'Zo',t:'Rustdag',km:0,disabled:true}]},
+  {w:9,fase:'Intensief',km:34,dagen:[{d:'Ma',t:'Rust',km:0},{d:'Di',t:'Intervaltraining 8km',km:8},{d:'Wo',t:'Herstelloop 5km',km:5},{d:'Do',t:'Tempoloop 8km',km:8},{d:'Vr',t:'Rust',km:0},{d:'Za',t:'Lange duurloop 17km',km:17},{d:'Zo',t:'Rustdag',km:0,disabled:true}]},
+  {w:10,fase:'Intensief',km:36,dagen:[{d:'Ma',t:'Rust',km:0},{d:'Di',t:'Intervaltraining 8km',km:8},{d:'Wo',t:'Herstelloop 5km',km:5},{d:'Do',t:'Tempoloop 9km',km:9},{d:'Vr',t:'Rust',km:0},{d:'Za',t:'Lange duurloop 18km',km:18},{d:'Zo',t:'Rustdag',km:0,disabled:true}]},
+  {w:11,fase:'Intensief',km:38,dagen:[{d:'Ma',t:'Rust',km:0},{d:'Di',t:'Tempoloop 9km',km:9},{d:'Wo',t:'Herstelloop 5km',km:5},{d:'Do',t:'Intervaltraining 9km',km:9},{d:'Vr',t:'Rust',km:0},{d:'Za',t:'Lange duurloop 19km',km:19},{d:'Zo',t:'Rustdag',km:0,disabled:true}]},
+  {w:12,fase:'Rust',km:22,dagen:[{d:'Ma',t:'Rust',km:0},{d:'Di',t:'Duurloop 7km',km:7},{d:'Wo',t:'Rust',km:0},{d:'Do',t:'Duurloop 6km',km:6},{d:'Vr',t:'Rust',km:0},{d:'Za',t:'Lange duurloop 9km',km:9},{d:'Zo',t:'Rustdag',km:0,disabled:true}]},
+  {w:13,fase:'Piek',km:40,dagen:[{d:'Ma',t:'Rust',km:0},{d:'Di',t:'Intervaltraining 9km',km:9},{d:'Wo',t:'Herstelloop 5km',km:5},{d:'Do',t:'Tempoloop 10km',km:10},{d:'Vr',t:'Rust',km:0},{d:'Za',t:'Lange duurloop 20km',km:20},{d:'Zo',t:'Rustdag',km:0,disabled:true}]},
+  {w:14,fase:'Piek',km:42,dagen:[{d:'Ma',t:'Rust',km:0},{d:'Di',t:'Tempoloop 10km',km:10},{d:'Wo',t:'Herstelloop 6km',km:6},{d:'Do',t:'Intervaltraining 10km',km:10},{d:'Vr',t:'Rust',km:0},{d:'Za',t:'Lange duurloop 21km',km:21},{d:'Zo',t:'Rustdag',km:0,disabled:true}]},
+  {w:15,fase:'Piek',km:42,dagen:[{d:'Ma',t:'Rust',km:0},{d:'Di',t:'Intervaltraining 10km',km:10},{d:'Wo',t:'Herstelloop 6km',km:6},{d:'Do',t:'Tempoloop 10km',km:10},{d:'Vr',t:'Rust',km:0},{d:'Za',t:'Lange duurloop 21km',km:21},{d:'Zo',t:'Rustdag',km:0,disabled:true}]},
+  {w:16,fase:'Rust',km:24,dagen:[{d:'Ma',t:'Rust',km:0},{d:'Di',t:'Duurloop 8km',km:8},{d:'Wo',t:'Rust',km:0},{d:'Do',t:'Duurloop 6km',km:6},{d:'Vr',t:'Rust',km:0},{d:'Za',t:'Lange duurloop 10km',km:10},{d:'Zo',t:'Rustdag',km:0,disabled:true}]},
+  {w:17,fase:'Opbouw',km:36,dagen:[{d:'Ma',t:'Rust',km:0},{d:'Di',t:'Tempoloop 9km',km:9},{d:'Wo',t:'Herstelloop 5km',km:5},{d:'Do',t:'Intervaltraining 9km',km:9},{d:'Vr',t:'Rust',km:0},{d:'Za',t:'Lange duurloop 18km',km:18},{d:'Zo',t:'Rustdag',km:0,disabled:true}]},
+  {w:18,fase:'Opbouw',km:38,dagen:[{d:'Ma',t:'Rust',km:0},{d:'Di',t:'Intervaltraining 9km',km:9},{d:'Wo',t:'Herstelloop 5km',km:5},{d:'Do',t:'Tempoloop 10km',km:10},{d:'Vr',t:'Rust',km:0},{d:'Za',t:'Lange duurloop 19km',km:19},{d:'Zo',t:'Rustdag',km:0,disabled:true}]},
+  {w:19,fase:'Intensief',km:40,dagen:[{d:'Ma',t:'Rust',km:0},{d:'Di',t:'Tempoloop 10km',km:10},{d:'Wo',t:'Herstelloop 6km',km:6},{d:'Do',t:'Intervaltraining 10km',km:10},{d:'Vr',t:'Rust',km:0},{d:'Za',t:'Lange duurloop 20km',km:20},{d:'Zo',t:'Rustdag',km:0,disabled:true}]},
+  {w:20,fase:'Intensief',km:40,dagen:[{d:'Ma',t:'Rust',km:0},{d:'Di',t:'Intervaltraining 10km',km:10},{d:'Wo',t:'Herstelloop 6km',km:6},{d:'Do',t:'Tempoloop 10km',km:10},{d:'Vr',t:'Rust',km:0},{d:'Za',t:'Lange duurloop 20km',km:20},{d:'Zo',t:'Rustdag',km:0,disabled:true}]},
+  {w:21,fase:'Afbouw',km:30,dagen:[{d:'Ma',t:'Rust',km:0},{d:'Di',t:'Duurloop 8km',km:8},{d:'Wo',t:'Herstelloop 4km',km:4},{d:'Do',t:'Tempoloop 7km',km:7},{d:'Vr',t:'Rust',km:0},{d:'Za',t:'Lange duurloop 14km',km:14},{d:'Zo',t:'Rustdag',km:0,disabled:true}]},
+  {w:22,fase:'Afbouw',km:22,dagen:[{d:'Ma',t:'Rust',km:0},{d:'Di',t:'Duurloop 6km',km:6},{d:'Wo',t:'Rust',km:0},{d:'Do',t:'Tempoloop 5km',km:5},{d:'Vr',t:'Rust',km:0},{d:'Za',t:'Duurloop 10km',km:10},{d:'Zo',t:'Rustdag',km:0,disabled:true}]},
+  {w:23,fase:'Afbouw',km:14,dagen:[{d:'Ma',t:'Rust',km:0},{d:'Di',t:'Duurloop 5km',km:5},{d:'Wo',t:'Rust',km:0},{d:'Do',t:'Loopdril 3km',km:3},{d:'Vr',t:'Rust',km:0},{d:'Za',t:'Rustige duurloop 6km',km:6},{d:'Zo',t:'Rustdag',km:0,disabled:true}]},
+  {w:24,fase:'Afbouw',km:21,dagen:[{d:'Ma',t:'Rust',km:0},{d:'Di',t:'Korte duurloop 3km',km:3},{d:'Wo',t:'Rust',km:0},{d:'Do',t:'Lichte activering 2km',km:2},{d:'Vr',t:'Rust',km:0},{d:'Za',t:'Rust',km:0},{d:'Zo',t:'HALVE MARATHON 21.1km',km:21.1,finish:true}]}
 ];
 
 const ZONES=[
@@ -482,6 +484,10 @@ async function trainingOpslaan(){
   const fout=document.getElementById('logFout');
   fout.style.display='none';
   if(!datum||!km){fout.textContent='Datum en afstand zijn verplicht.';fout.style.display='block';return;}
+  const dagNr=new Date(datum).getDay();
+  if(dagNr===0){fout.innerHTML='Zondag is een rustdag — je kunt op zondag geen training registreren.';fout.style.display='block';return;}
+  const dagNr=new Date(datum).getDay();
+  if(dagNr===0){fout.innerHTML='Zondag is een rustdag — je kunt op zondag geen training registreren.';fout.style.display='block';return;}
   const record={
     user_id:gebruikerId,datum,
     type:document.getElementById('logType').value,
@@ -552,6 +558,20 @@ function bouwSchema(){
       <div class="week-body" id="wb${w.w}">
         ${w.dagen.map((d,i)=>{
           const isDone=vinkjes[`${w.w}_${i}`];
+          if(d.disabled){
+            return `<div class="dag-rij dag-disabled">
+              <span class="dag-naam">${d.d}</span>
+              <span class="dag-omschrijving dag-rustdag">Rustdag</span>
+              <div class="dag-rechts"></div>
+            </div>`;
+          }
+          if(d.finish){
+            return `<div class="dag-rij dag-finish">
+              <span class="dag-naam">${d.d}</span>
+              <span class="dag-omschrijving" style="font-weight:500;color:#E91E8C">${d.t}</span>
+              <div class="dag-rechts"><span class="dag-km">${d.km}km</span></div>
+            </div>`;
+          }
           return `<div class="dag-rij">
             <span class="dag-naam">${d.d}</span>
             <span class="dag-omschrijving">${d.t}</span>
@@ -622,6 +642,8 @@ async function trainingBijwerken(){
   const fout=document.getElementById('bewerkFout');
   fout.style.display='none';
   if(!datum||!km){fout.textContent='Datum en afstand zijn verplicht.';fout.style.display='block';return;}
+  const dagNrB=new Date(datum).getDay();
+  if(dagNrB===0){fout.innerHTML='Zondag is een rustdag — je kunt op zondag geen training registreren.';fout.style.display='block';return;}
   const updates={
     datum,
     type:document.getElementById('bewerkType').value,
