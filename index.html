@@ -147,6 +147,15 @@
   .fout-bericht { background: #FAECE7; color: #712B13; border-radius: var(--radius-sm); padding: 12px 14px; font-size: 13px; margin-bottom: 12px; display: none; line-height: 1.6; }
   .fout-bericht code { background: rgba(0,0,0,0.08); padding: 1px 5px; border-radius: 3px; font-family: 'DM Mono', monospace; font-size: 12px; }
 
+  .log-acties { display: flex; gap: 6px; margin-top: 8px; }
+  .log-actie-btn { font-size: 12px; padding: 4px 10px; border-radius: var(--radius-sm); border: 1px solid var(--rand); cursor: pointer; background: transparent; font-family: 'DM Sans', sans-serif; color: var(--tekst-zacht); transition: all 0.15s; }
+  .log-actie-btn:hover { background: var(--achtergrond); color: var(--tekst); }
+  .log-actie-btn.verwijder:hover { background: #FAECE7; color: #712B13; border-color: #F0997B; }
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.35); z-index: 200; align-items: center; justify-content: center; padding: 20px; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: var(--wit); border-radius: var(--radius); padding: 24px; width: 100%; max-width: 440px; border: 1px solid var(--rand); }
+  .modal h3 { font-size: 16px; font-weight: 500; margin-bottom: 16px; }
+  .modal-acties { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
   @media (max-width: 520px) {
     .form-rij, .form-rij-3 { grid-template-columns: 1fr; }
     .stats { grid-template-columns: 1fr 1fr; }
@@ -506,11 +515,67 @@ function toonLogs(){
           <div class="log-type">${l.type}</div>
           ${pills.length?`<div class="log-pills" style="margin-top:6px">${pills.join('')}</div>`:''}
           ${l.notitie?`<div class="log-notitie">${l.notitie}</div>`:''}
+          <div class="log-acties">
+            <button class="log-actie-btn" onclick="openBewerk('${l.id}')">Bewerken</button>
+            <button class="log-actie-btn verwijder" onclick="trainingVerwijderen('${l.id}')">Verwijderen</button>
+          </div>
         </div>
         <div class="log-km">${parseFloat(l.km).toFixed(1)}<span class="log-km-unit"> km</span></div>
       </div>
     </div>`;
   }).join('');
+}
+
+function openBewerk(id){
+  const l=trainingen.find(t=>t.id===id);
+  if(!l)return;
+  document.getElementById('bewerkId').value=l.id;
+  document.getElementById('bewerkDatum').value=l.datum;
+  document.getElementById('bewerkType').value=l.type||'Duurloop';
+  document.getElementById('bewerkKm').value=l.km;
+  document.getElementById('bewerkTijd').value=l.tijd_min||'';
+  document.getElementById('bewerkHr').value=l.hr_avg||'';
+  document.getElementById('bewerkNotitie').value=l.notitie||'';
+  document.getElementById('bewerkFout').style.display='none';
+  document.getElementById('bewerkModal').classList.add('open');
+}
+
+function sluitModal(){
+  document.getElementById('bewerkModal').classList.remove('open');
+}
+
+async function trainingBijwerken(){
+  const id=document.getElementById('bewerkId').value;
+  const km=parseFloat(document.getElementById('bewerkKm').value);
+  const datum=document.getElementById('bewerkDatum').value;
+  const fout=document.getElementById('bewerkFout');
+  fout.style.display='none';
+  if(!datum||!km){fout.textContent='Datum en afstand zijn verplicht.';fout.style.display='block';return;}
+  const updates={
+    datum,
+    type:document.getElementById('bewerkType').value,
+    km,
+    tijd_min:parseInt(document.getElementById('bewerkTijd').value)||null,
+    hr_avg:parseInt(document.getElementById('bewerkHr').value)||null,
+    notitie:document.getElementById('bewerkNotitie').value.trim()||null
+  };
+  const btn=document.getElementById('bewerkBtn');
+  btn.textContent='Opslaan...';btn.disabled=true;
+  const {error}=await sb.from('trainingen').update(updates).eq('id',id).eq('user_id',gebruikerId);
+  btn.textContent='Opslaan';btn.disabled=false;
+  if(error){fout.textContent='Fout: '+error.message;fout.style.display='block';return;}
+  const idx=trainingen.findIndex(t=>t.id===id);
+  if(idx>-1)trainingen[idx]={...trainingen[idx],...updates};
+  trainingen.sort((a,b)=>b.datum.localeCompare(a.datum));
+  toonLogs();sluitModal();
+}
+
+async function trainingVerwijderen(id){
+  if(!confirm('Weet je zeker dat je deze training wilt verwijderen?'))return;
+  const {error}=await sb.from('trainingen').delete().eq('id',id).eq('user_id',gebruikerId);
+  if(error){alert('Fout bij verwijderen: '+error.message);return;}
+  trainingen=trainingen.filter(t=>t.id!==id);
+  toonLogs();
 }
 
 function formatDatum(d){if(!d)return'';const[y,m,day]=d.split('-');return`${day}-${m}-${y}`;}
@@ -584,5 +649,39 @@ window.addEventListener('DOMContentLoaded',()=>{
   }
 });
 </script>
+
+<!-- BEWERK MODAL -->
+<div class="modal-overlay" id="bewerkModal" onclick="if(event.target===this)sluitModal()">
+  <div class="modal">
+    <h3>Training bewerken</h3>
+    <input type="hidden" id="bewerkId">
+    <div class="form-rij">
+      <div class="form-groep"><label>Datum</label><input type="date" id="bewerkDatum"></div>
+      <div class="form-groep"><label>Type training</label>
+        <select id="bewerkType">
+          <option>Duurloop</option><option>Tempoloop</option><option>Intervaltraining</option>
+          <option>Lange duurloop</option><option>Herstelloop</option><option>Krachttraining</option><option>Rust</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-rij">
+      <div class="form-groep"><label>Afstand (km)</label><input type="number" id="bewerkKm" min="0" step="0.1"></div>
+      <div class="form-groep"><label>Tijd (min)</label><input type="number" id="bewerkTijd" min="0"></div>
+    </div>
+    <div class="form-groep" style="margin-bottom:10px">
+      <label>Gemiddelde hartslag (bpm)</label>
+      <input type="number" id="bewerkHr" min="40" max="220" placeholder="bijv. 145">
+    </div>
+    <div class="form-groep" style="margin-bottom:10px">
+      <label>Notitie</label>
+      <textarea id="bewerkNotitie" style="height:60px;resize:none"></textarea>
+    </div>
+    <div class="fout-bericht" id="bewerkFout"></div>
+    <div class="modal-acties">
+      <button class="btn" onclick="sluitModal()">Annuleren</button>
+      <button class="btn btn-primary" onclick="trainingBijwerken()" id="bewerkBtn">Opslaan</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>
