@@ -73,6 +73,7 @@
 
   /* HOOFD LAYOUT */
   .app { display: none; max-width: 800px; margin: 0 auto; padding: 24px 20px; }
+  .setup.verborgen { display: none !important; }
   .app.zichtbaar { display: block; }
 
   /* NAV */
@@ -396,11 +397,14 @@ function afmelden(){
   localStorage.removeItem('sb_user');
   sb=null; gebruikerId=''; trainingen=[]; vinkjes={};
   document.getElementById('hoofdApp').classList.remove('zichtbaar');
-  document.getElementById('setupScherm').style.display='';
+  document.getElementById('setupScherm').classList.remove('verborgen');
   document.getElementById('gebruikersnaam').value='';
   document.getElementById('statusDot').classList.remove('verbonden');
   document.getElementById('statusTekst').textContent='Niet verbonden';
   document.getElementById('afmeldBtn').style.display='none';
+  // Reset de startknop zodat die weer klikbaar is
+  const startBtn=document.querySelector('#setupScherm .btn-primary');
+  if(startBtn){startBtn.textContent='Starten';startBtn.disabled=false;}
   // Herstart naamanimatie
   ['naamRien','naamEn','naamLiza'].forEach(id=>{
     const el=document.getElementById(id);
@@ -450,7 +454,7 @@ async function verbinden(){
     gebruikerId=naam;
     localStorage.setItem('sb_user',naam);
     await laadAlles();
-    document.getElementById('setupScherm').style.display='none';
+    document.getElementById('setupScherm').classList.add('verborgen');
     document.getElementById('hoofdApp').classList.add('zichtbaar');
     document.getElementById('statusDot').classList.add('verbonden');
     document.getElementById('statusTekst').textContent='Verbonden · '+naam;
