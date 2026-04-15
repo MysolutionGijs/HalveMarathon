@@ -194,9 +194,10 @@
 
 <div class="header">
   <div class="logo">halve<span>marathon</span>.app</div>
-  <div>
+  <div style="display:flex;align-items:center;gap:12px">
     <span class="status-dot" id="statusDot"></span>
     <span class="status-tekst" id="statusTekst">Verbinden...</span>
+    <button id="afmeldBtn" onclick="afmelden()" style="display:none;font-size:12px;padding:5px 12px;font-family:inherit;border:1px solid var(--rand);border-radius:20px;cursor:pointer;background:transparent;color:var(--tekst-zacht);">Afmelden</button>
   </div>
 </div>
 
@@ -391,6 +392,22 @@ let sb=null, gebruikerId='', vinkjes={}, trainingen=[], maxHr=185;
 const SB_URL='https://kwijbspfugcygrmloibq.supabase.co';
 const SB_KEY='sb_publishable_HrKjiH6ra5Q9AMO9qk5wQg_J7ZTEudh';
 
+function afmelden(){
+  localStorage.removeItem('sb_user');
+  sb=null; gebruikerId=''; trainingen=[]; vinkjes={};
+  document.getElementById('hoofdApp').classList.remove('zichtbaar');
+  document.getElementById('setupScherm').style.display='';
+  document.getElementById('gebruikersnaam').value='';
+  document.getElementById('statusDot').classList.remove('verbonden');
+  document.getElementById('statusTekst').textContent='Niet verbonden';
+  document.getElementById('afmeldBtn').style.display='none';
+  // Herstart naamanimatie
+  ['naamRien','naamEn','naamLiza'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el){el.classList.remove('zichtbaar');setTimeout(()=>el.classList.add('zichtbaar'),id==='naamRien'?300:id==='naamEn'?700:1100);}
+  });
+}
+
 async function verbinden(){
   const url=SB_URL;
   const key=SB_KEY;
@@ -437,6 +454,7 @@ async function verbinden(){
     document.getElementById('hoofdApp').classList.add('zichtbaar');
     document.getElementById('statusDot').classList.add('verbonden');
     document.getElementById('statusTekst').textContent='Verbonden · '+naam;
+    document.getElementById('afmeldBtn').style.display='block';
   }catch(e){
     let msg=e.message||'Onbekende fout';
     if(msg.includes('fetch')||msg.includes('Failed to fetch')||msg.includes('NetworkError')){
