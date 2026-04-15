@@ -486,8 +486,8 @@ async function trainingOpslaan(){
   if(!datum||!km){fout.textContent='Datum en afstand zijn verplicht.';fout.style.display='block';return;}
   const dagNr=new Date(datum).getDay();
   if(dagNr===0){fout.innerHTML='Zondag is een rustdag — je kunt op zondag geen training registreren.';fout.style.display='block';return;}
-  const dagNr=new Date(datum).getDay();
-  if(dagNr===0){fout.innerHTML='Zondag is een rustdag — je kunt op zondag geen training registreren.';fout.style.display='block';return;}
+  const dagNrCheck=new Date(datum).getDay();
+  if(dagNrCheck===0){fout.innerHTML='Zondag is een rustdag — je kunt op zondag geen training registreren.';fout.style.display='block';return;}
   const record={
     user_id:gebruikerId,datum,
     type:document.getElementById('logType').value,
